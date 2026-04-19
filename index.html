@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adoption Transition Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double&family=Inter+Tight:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f8f7f4;color:#2c2c2a;line-height:1.5}
+.page{max-width:960px;margin:0 auto;padding:2rem 1.5rem}
+.header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid #d3d1c7;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.header-text{flex:1;min-width:200px}
+.header h1{font-family:'Bitcount Grid Double',monospace;font-size:30px;font-weight:400;color:#2c2c2a;margin-bottom:6px;line-height:1.2;letter-spacing:0.01em}
+.header .subtitle{font-family:'Inter Tight',sans-serif;font-style:normal;font-weight:400;font-size:14px;color:#5f5e5a;margin-top:2px;margin-bottom:0px}
+.header .tagline{font-size:12px;color:#b4b2a9;margin-top:10px}
+.header-img{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+.card{background:#fff;border:1px solid #d3d1c7;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+label.lbl{font-size:13px;color:#5f5e5a;min-width:260px}
+input[type=date],input[type=number],select{font-family:inherit;font-size:13px;padding:6px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;outline:none}
+input[type=date]:focus,input[type=number]:focus,select:focus{border-color:#888780}
+button{font-family:inherit;font-size:13px;padding:6px 14px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#2c2c2a;cursor:pointer;transition:background .15s}
+button:hover{background:#f1efe8}
+.btn-dark{background:#2c2c2a;color:#fff;border-color:#2c2c2a}
+.btn-dark:hover{background:#444441!important}
+h2{font-size:16px;font-weight:600;color:#2c2c2a;margin-bottom:.75rem}
+.divider{border:none;border-top:1px solid #d3d1c7;margin:1.5rem 0}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.b-purple{background:#EEEDFE;color:#3C3489}.b-teal{background:#E1F5EE;color:#085041}
+.b-blue{background:#E6F1FB;color:#0C447C}.b-amber{background:#FAEEDA;color:#633806}
+.b-coral{background:#FAECE7;color:#712B13}.b-green{background:#EAF3DE;color:#27500A}
+.b-gray{background:#F1EFE8;color:#444441}.b-pink{background:#FBEAF0;color:#72243E}
+.b-red{background:#FCEBEB;color:#791F1F}
+.info-note{font-size:12px;color:#5f5e5a;padding:8px 10px;background:#f5f5f3;border-radius:8px;margin-top:4px}
+.early-note{font-size:12px;color:#085041;padding:6px 10px;background:#E1F5EE;border-radius:8px;margin-top:6px}
+.cal-container{position:relative}
+table.cal{border-collapse:collapse;width:100%;table-layout:fixed}
+table.cal th{background:#f5f5f3;color:#5f5e5a;padding:6px 4px;font-weight:600;font-size:12px;border:1px solid #d3d1c7;text-align:center}
+table.cal td{border:1px solid #d3d1c7;padding:4px;vertical-align:top;height:72px;position:relative;cursor:pointer}
+.cell-date{font-size:11px;color:#888780;margin-bottom:2px}
+.ev-pill{font-size:11px;padding:2px 5px;border-radius:4px;margin-bottom:2px;line-height:1.3;cursor:grab;user-select:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.weekend{background:#f8f7f4}
+td.drop-over{outline:2px solid #7F77DD;outline-offset:-2px}
+.add-btn{display:none;font-size:16px;color:#b4b2a9;cursor:pointer;position:absolute;top:3px;right:4px;line-height:1;z-index:2}
+td:hover .add-btn{display:block}
+.cal-lock-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:50;cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:rgba(0,0,0,0.07);border-radius:4px}
+.cal-lock-overlay.visible{display:flex}
+.lock-icon{width:42px;height:42px;background:#fff;border:1px solid #b4b2a9;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.lock-icon svg{width:20px;height:20px;stroke:#2c2c2a}
+.lock-label{font-size:12px;font-weight:600;color:#2c2c2a;background:#fff;padding:5px 14px;border-radius:20px;border:1px solid #b4b2a9}
+table.cal.locked td{cursor:default}
+table.cal.locked .ev-pill{cursor:default;pointer-events:none}
+table.cal.locked .add-btn{display:none!important}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;border:1px solid #d3d1c7;padding:1.5rem;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.modal h3{font-size:15px;font-weight:600;color:#2c2c2a;margin-bottom:14px}
+.modal input,.modal select{width:100%;margin-bottom:10px;font-size:13px;padding:7px 10px;border:1px solid #d3d1c7;border-radius:8px;font-family:inherit;color:#2c2c2a}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;align-items:center}
+.btn-delete{margin-right:auto;font-size:13px;color:#a32d2d;border-color:#f09595}
+.btn-delete:hover{background:#FCEBEB!important}
+.leg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ms-row{padding:10px 0;border-bottom:1px solid #e8e6e0}
+.ms-row:last-child{border-bottom:none}
+.ms-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:5px}
+.ms-date{min-width:130px;font-size:13px;font-weight:600;color:#2c2c2a;white-space:nowrap}
+.ms-notes{width:100%;font-size:13px;color:#2c2c2a;background:transparent;border:none;border-bottom:1px dashed #d3d1c7;resize:none;outline:none;font-family:inherit;line-height:1.5;min-height:20px;padding:2px 0}
+.ms-notes:focus{border-bottom:1px solid #888780}
+.ms-notes::placeholder{color:#b4b2a9;font-style:italic}
+.pdf-btns{display:flex;gap:8px;margin-top:1.5rem;flex-wrap:wrap;align-items:center}
+.section-label{font-size:11px;font-weight:600;color:#888780;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+#placeholder{font-size:13px;color:#888780;padding:16px;background:#f5f5f3;border-radius:10px;text-align:center}
+.spinner{display:none;font-size:12px;color:#888780;padding:4px 8px}
+@media(max-width:600px){label.lbl{min-width:100%}.modal{width:calc(100vw - 2rem)}.header-img{display:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-text">
+      <h1>Adoption Transition Planner</h1>
+      <p class="subtitle">A free tool developed by Liz Muscat</p>
+      <p class="tagline">Enter the matching panel date to generate all transition milestones automatically.</p>
+    </div>
+    <div class="header-img">
+      <svg id="Layer_4" data-name="Layer 4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250.72 974.3" width="140" height="109" aria-label="Family silhouette with sun">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #2a7796;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-1" points="253.85 429.53 217.97 453.93 137.55 677.29 173.08 702.81 234.26 521.59 222.93 628.71 151.51 955.17 195.87 952.19 261.21 715.03 278.1 715.54 315.89 800.15 328.91 943.21 372.97 957.39 364.52 778.71 320.41 636.41 320.41 508.56 443.08 655.71 447.97 648.38 497.04 689.19 560.72 700.12 560.72 779.47 514.25 950.64 550.52 950.64 584.53 825.95 618.53 944.97 650.27 949.5 610.6 776.07 612.86 717.13 679.71 702.02 749.26 664.26 754.48 668.33 840.13 598.88 880.38 536.89 890.58 633.25 798.4 948.65 847.93 953.04 920.05 710.33 934.36 713.73 959.38 832.33 954.23 948.65 1002.58 955.17 1010.2 825.41 976.73 628.71 962.52 513.7 1044.64 474.02 1107.09 358.93 1078.36 347.72 1019.81 448.48 955.33 472.99 922.65 440.29 950.66 408.8 940.46 369.13 908.72 405.4 889.36 478.53 818.79 566.06 726.68 637.09 731.89 643.45 669.4 673.65 612.86 679.72 603.34 650.09 584.53 599.24 577.44 657.23 570.96 673.3 508.9 663.21 463.81 635.5 471.97 627.66 324.89 450.34 297.62 425.94 275.07 282.98 253.85 429.53"/>
+  <path class="cls-1" d="M353.22,333.79c0,45.81-44.12,80.67-78.68,82.95-43.36,2.85-78.68-37.14-78.68-82.95s35.22-82.95,78.68-82.95,78.68,37.14,78.68,82.95Z"/>
+  <circle class="cls-1" cx="912.75" cy="388.6" r="71.18"/>
+  <path class="cls-1" d="M643.5,610.22c0,34.04-19.95,58.11-52.42,58.11s-58.8-27.59-58.8-61.63,26.33-61.63,58.8-61.63,52.42,31.12,52.42,65.15Z"/>
+  <g>
+    <ellipse class="cls-1" cx="701.08" cy="173.22" rx="96.46" ry="94.45" transform="translate(190.81 684.24) rotate(-58.92)"/>
+    <polygon class="cls-1" points="645.54 271.22 616.04 320.15 609.71 316.34 636.33 265.66 645.54 271.22"/>
+    <polygon class="cls-1" points="765.7 86.2 750.15 76.83 802.55 4.21 806.12 8.72 765.7 86.2"/>
+    <polygon class="cls-1" points="606.62 133.95 616.34 117.83 532.28 67.16 533.63 84.46 606.62 133.95"/>
+    <polygon class="cls-1" points="786.1 232.05 836.22 259.34 838.92 247.28 793.44 219.87 786.1 232.05"/>
+    <polygon class="cls-1" points="743.64 273.84 729.69 278.77 750.6 342.39 758.96 339.58 743.64 273.84"/>
+    <polygon class="cls-1" points="600.13 208.52 598.21 190.88 535.58 204.94 542.47 216.94 600.13 208.52"/>
+    <polygon class="cls-1" points="661.03 78.84 680.69 74.88 670.88 0 656.34 4.58 661.03 78.84"/>
+    <polygon class="cls-1" points="802.56 157.86 798.68 138.26 868.73 121.32 868.78 135.77 802.56 157.86"/>
+  </g>
+  <polygon class="cls-1" points="19.12 948.65 1233.71 955.08 1250.72 974.3 0 974.3 19.12 948.65"/>
+</svg>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Calculator</div>
+    <div class="row"><label class="lbl">Matching panel date</label><input type="date" id="panelDate"/></div>
+    <div class="row"><label class="lbl">Placement planning meeting (working days after panel)</label><input type="number" id="ppmDays" value="3" min="1" max="10" style="width:64px"/></div>
+    <div class="row"><label class="lbl">Playdates before formal introductions</label><input type="number" id="playdates" value="6" min="4" max="8" style="width:64px"/></div>
+    <div class="row"><label class="lbl">Formal introductions length (consecutive days)</label><input type="number" id="introDays" value="12" min="10" max="14" style="width:64px"/></div>
+    <div style="border-top:1px solid #e8e6e0;margin-top:10px;padding-top:12px">
+      <div class="section-label">Override dates — fill in when confirmed</div>
+      <div class="row" style="margin-bottom:4px">
+        <label class="lbl">ADM decision date <span style="font-weight:400">(if confirmed early)</span></label>
+        <input type="date" id="admOverride"/>
+        <button id="clearAdm" style="font-size:12px;display:none">Clear</button>
+      </div>
+      <div id="admStatus" class="info-note" style="margin-bottom:10px">ADM will be estimated at 15 working days after matching panel.</div>
+      <div class="row" style="margin-bottom:4px">
+        <label class="lbl">Confirmed intro start date <span style="font-weight:400">(if different from calculated)</span></label>
+        <input type="date" id="introOverride"/>
+        <button id="clearIntro" style="font-size:12px;display:none">Clear</button>
+      </div>
+      <div id="introStatus" class="info-note">Intro start will be calculated from ADM decision.</div>
+    </div>
+  </div>
+
+  <div id="output" style="display:none">
+    <hr class="divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <h2 style="margin:0">Calendar</h2>
+      <div class="toolbar">
+        <button id="resetBtn">Reset calendar</button>
+        <button id="lockBtn" class="btn-dark">Locked</button>
+      </div>
+    </div>
+    <div class="leg" id="legend"></div>
+    <div style="overflow-x:auto">
+      <div class="cal-container" id="calContainer">
+        <table class="cal locked" id="calTable"></table>
+        <div class="cal-lock-overlay visible" id="lockOverlay">
+          <div class="lock-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <span class="lock-label">Unlock calendar</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <h2>Milestone summary</h2>
+    <p style="font-size:12px;color:#888780;margin-bottom:10px">Click the notes line under any milestone to add detail. Notes are included in the downloaded PDFs.</p>
+    <div class="card" id="milestones"></div>
+    <div class="pdf-btns">
+      <button id="dlCalBtn">Download calendar PDF</button>
+      <button id="dlMsBtn">Download milestone PDF</button>
+      <span class="spinner" id="spinner">Generating PDF...</span>
+    </div>
+  </div>
+
+  <div id="placeholder">Enter a matching panel date above to get started.</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Add event</h3>
+    <input type="text" id="evLabel" placeholder="Event label"/>
+    <select id="evColor">
+      <option value="b-blue">Blue</option><option value="b-purple">Purple</option>
+      <option value="b-teal">Teal</option><option value="b-amber">Amber</option>
+      <option value="b-coral">Coral</option><option value="b-green">Green</option>
+      <option value="b-gray">Gray</option><option value="b-pink">Pink</option>
+      <option value="b-red">Red</option>
+    </select>
+    <div class="modal-btns">
+      <button id="modalDelete" class="btn-delete" style="display:none">Delete</button>
+      <button id="modalCancel">Cancel</button>
+      <button id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let calEvents={},milestoneNotes={},locked=true,modalDateKey=null,modalEditId=null,dragSrcId=null,dragSrcKey=null;
+
+function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function addDays(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);}
+function isWeekend(d){return d.getDay()===0||d.getDay()===6;}
+function isFriday(d){return d.getDay()===5;}
+function addWorkingDays(d,n){let r=new Date(d.getFullYear(),d.getMonth(),d.getDate());let c=0;while(c<n){r=addDays(r,1);if(!isWeekend(r))c++;}return r;}
+function fmt(d){return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});}
+function fmtShort(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+function dateKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function keyToDate(k){return parseDate(k);}
+function uid(){return 'ev_'+Math.random().toString(36).slice(2);}
+
+const ADM_LABEL='ADM decision';
+const POST_ADM=new Set(['ADM decision','Rest day','Placement day','Foster carer visit 1','Foster carer visit 2','Foster carer visit 3']);
+for(let i=1;i<=8;i++)POST_ADM.add(`Playdate ${i}`);
+for(let i=1;i<=14;i++)POST_ADM.add(`Intro day ${i}`);
+
+const LEGEND=[{l:'Matching panel',c:'b-purple'},{l:'Placement planning meeting',c:'b-blue'},{l:'ADM decision',c:'b-teal'},{l:'ADM (moved)',c:'b-red'},{l:'Formal intro',c:'b-amber'},{l:'Rest day',c:'b-gray'},{l:'Placement day',c:'b-coral'},{l:'Playdate',c:'b-gray'},{l:'Foster carer visit',c:'b-green'}];
+function buildLegend(){$('legend').innerHTML=LEGEND.map(l=>`<span class="badge ${l.c}">${l.l}</span>`).join('');}
+
+function getADMDate(panel){const ov=$('admOverride').value;if(ov){const d=parseDate(ov);if(d>panel)return{date:d,early:true};}return{date:addWorkingDays(panel,15),early:false};}
+function getIntroStart(adm){const ov=$('introOverride').value;if(ov){const d=parseDate(ov);if(d>adm)return{date:d,confirmed:true};}let d=addDays(adm,1);while(isWeekend(d))d=addDays(d,1);return{date:d,confirmed:false};}
+
+function updateStatuses(){
+  const pv=$('panelDate').value;
+  $('clearAdm').style.display=$('admOverride').value?'inline-block':'none';
+  $('clearIntro').style.display=$('introOverride').value?'inline-block':'none';
+  if(!pv)return;
+  const panel=parseDate(pv);
+  const{date:adm,early}=getADMDate(panel);
+  if(early){const est=addWorkingDays(panel,15);const diff=Math.round((est-adm)/86400000);$('admStatus').innerHTML=`ADM confirmed: <strong>${fmt(adm)}</strong> — ${diff} day${diff!==1?'s':''} earlier than estimated.`;$('admStatus').className='early-note';}
+  else{$('admStatus').textContent=`Estimated ADM: ${fmt(adm)} (15 working days after matching panel).`;$('admStatus').className='info-note';}
+  const{date:is,confirmed}=getIntroStart(adm);
+  if(confirmed){$('introStatus').innerHTML=`Intro start confirmed: <strong>${fmt(is)}</strong>.`;$('introStatus').className='early-note';}
+  else{$('introStatus').textContent=`Calculated intro start: ${fmt(is)} (first working day after ADM).`;$('introStatus').className='info-note';}
+}
+
+function genPostADM(admDate,admCls,pc,ic){
+  const evs=[];
+  function ev(date,label,cls){evs.push({id:uid(),label,cls,locked:false,role:label,custom:false,date:new Date(date.getFullYear(),date.getMonth(),date.getDate())});}
+  const{date:introStart}=getIntroStart(admDate);
+  const pdList=[];let pd=addDays(introStart,-1);
+  for(let i=0;i<pc;i++){while(isWeekend(pd))pd=addDays(pd,-1);pdList.unshift(new Date(pd.getFullYear(),pd.getMonth(),pd.getDate()));pd=addDays(pd,-2);}
+  pdList.forEach((_,i)=>ev(pdList[i],`Playdate ${i+1}`,'b-gray'));
+  ev(admDate,ADM_LABEL,admCls);
+  const introDates=[];let restDay=null;
+  let cur=new Date(introStart.getFullYear(),introStart.getMonth(),introStart.getDate());let dc=0;
+  while(dc<ic){if(!isWeekend(cur)){introDates.push(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()));dc++;if(dc===1){let ns=addDays(cur,1);while(ns.getDay()!==6)ns=addDays(ns,1);restDay=new Date(ns.getFullYear(),ns.getMonth(),ns.getDate());}}cur=addDays(cur,1);}
+  introDates.forEach((d,i)=>ev(d,`Intro day ${i+1}`,'b-amber'));
+  if(restDay)ev(restDay,'Rest day','b-gray');
+  let ie=new Date(introDates[introDates.length-1].getFullYear(),introDates[introDates.length-1].getMonth(),introDates[introDates.length-1].getDate());
+  while(isWeekend(ie)||isFriday(ie))ie=addDays(ie,1);
+  ev(ie,'Placement day','b-coral');ev(addDays(ie,2),'Foster carer visit 1','b-green');ev(addDays(ie,6),'Foster carer visit 2','b-green');ev(addDays(ie,13),'Foster carer visit 3','b-green');
+  return evs;
+}
+
+function placeEv(date,label,cls,lk,custom){const k=dateKey(date);if(!calEvents[k])calEvents[k]=[];calEvents[k].push({id:uid(),label,cls,locked:!!lk,role:label,custom:!!custom});}
+
+function calculate(){
+  const pv=$('panelDate').value;if(!pv){$('output').style.display='none';$('placeholder').style.display='block';return;}
+  const panel=parseDate(pv);const ppmDays=parseInt($('ppmDays').value)||3;const pc=parseInt($('playdates').value)||6;const ic=parseInt($('introDays').value)||12;
+  const{date:adm}=getADMDate(panel);
+  calEvents={};
+  placeEv(panel,'Matching panel','b-purple',true,false);
+  placeEv(addWorkingDays(panel,ppmDays),'Placement planning meeting','b-blue',false,false);
+  const postADM=genPostADM(adm,'b-teal',pc,ic);
+  for(const ev of postADM){const k=dateKey(ev.date);if(!calEvents[k])calEvents[k]=[];calEvents[k].push({id:ev.id,label:ev.label,cls:ev.cls,locked:false,role:ev.role,custom:false});}
+  milestoneNotes={};updateStatuses();renderCalendar();renderMilestones();buildLegend();
+  $('output').style.display='block';$('placeholder').style.display='none';
+}
+
+function cascadeADM(newAdmKey){
+  const pc=parseInt($('playdates').value)||6;const ic=parseInt($('introDays').value)||12;
+  const newAdm=keyToDate(newAdmKey);
+  for(const k of Object.keys(calEvents)){calEvents[k]=(calEvents[k]||[]).filter(ev=>!POST_ADM.has(ev.label));if(!calEvents[k].length)delete calEvents[k];}
+  const postADM=genPostADM(newAdm,'b-red',pc,ic);
+  for(const ev of postADM){const k=dateKey(ev.date);if(!calEvents[k])calEvents[k]=[];calEvents[k].push({id:ev.id,label:ev.label,cls:ev.cls,locked:false,role:ev.role,custom:false});}
+}
+
+function renderCalendar(){
+  const allKeys=Object.keys(calEvents).filter(k=>calEvents[k]&&calEvents[k].length>0).sort();
+  if(!allKeys.length)return;
+  const pk=allKeys.find(k=>calEvents[k].some(e=>e.label==='Matching panel'))||allKeys[0];
+  const panelDate=keyToDate(pk);const lastDate=keyToDate(allKeys[allKeys.length-1]);
+  const sc=new Date(panelDate.getFullYear(),panelDate.getMonth(),panelDate.getDate());
+  const dow=sc.getDay();sc.setDate(sc.getDate()-(dow===0?6:dow-1));
+  const ec=addDays(lastDate,10);const weeks=[];
+  let c=new Date(sc.getFullYear(),sc.getMonth(),sc.getDate());
+  while(c<=ec){const w=[];for(let i=0;i<7;i++){w.push(new Date(c.getFullYear(),c.getMonth(),c.getDate()));c=addDays(c,1);}weeks.push(w);}
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let html='<thead><tr>'+days.map(d=>`<th>${d}</th>`).join('')+'</tr></thead><tbody>';
+  for(const week of weeks){
+    html+='<tr>';
+    for(const day of week){
+      const k=dateKey(day);const evs=calEvents[k]||[];
+      html+=`<td class="${isWeekend(day)?'weekend':''}" data-key="${k}">`;
+      html+=`<span class="add-btn" data-key="${k}" title="Add event">+</span>`;
+      html+=`<div class="cell-date">${fmtShort(day)}</div>`;
+      for(const ev of evs)html+=`<span class="ev-pill ${ev.cls}${ev.custom?' custom-ev':''}" draggable="true" data-id="${ev.id}" data-key="${k}" data-locked="${ev.locked}" data-custom="${!!ev.custom}" title="${ev.custom?'Double-click to edit':ev.label}">${ev.label}</span>`;
+      html+='</td>';
+    }
+    html+='</tr>';
+  }
+  html+='</tbody>';
+  const tbl=$('calTable');tbl.innerHTML=html;
+  if(locked)tbl.classList.add('locked');else tbl.classList.remove('locked');
+
+  tbl.querySelectorAll('.ev-pill').forEach(pill=>{
+    pill.addEventListener('dragstart',e=>{
+      if(locked||pill.dataset.locked==='true'){e.preventDefault();return;}
+      dragSrcId=pill.dataset.id;dragSrcKey=pill.dataset.key;
+      e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',pill.dataset.id);
+      setTimeout(()=>{pill.style.opacity='0.35';},0);
+    });
+    pill.addEventListener('dragend',()=>{pill.style.opacity='';tbl.querySelectorAll('.drop-over').forEach(el=>el.classList.remove('drop-over'));});
+    pill.addEventListener('dblclick',e=>{e.stopPropagation();if(!locked&&pill.dataset.custom==='true')openModal(pill.dataset.key,pill.dataset.id);});
+  });
+
+  tbl.querySelectorAll('td').forEach(td=>{
+    td.addEventListener('dragover',e=>{if(locked||!dragSrcId)return;e.preventDefault();tbl.querySelectorAll('.drop-over').forEach(el=>el.classList.remove('drop-over'));td.classList.add('drop-over');});
+    td.addEventListener('dragleave',e=>{if(!td.contains(e.relatedTarget))td.classList.remove('drop-over');});
+    td.addEventListener('drop',e=>{
+      e.preventDefault();td.classList.remove('drop-over');
+      if(locked||!dragSrcId||!dragSrcKey)return;
+      const toKey=td.dataset.key;if(!toKey||toKey===dragSrcKey){dragSrcId=null;dragSrcKey=null;return;}
+      const src=calEvents[dragSrcKey];if(!src){dragSrcId=null;dragSrcKey=null;return;}
+      const idx=src.findIndex(ev=>ev.id===dragSrcId);if(idx===-1){dragSrcId=null;dragSrcKey=null;return;}
+      const[movedEv]=src.splice(idx,1);if(!src.length)delete calEvents[dragSrcKey];
+      if(!calEvents[toKey])calEvents[toKey]=[];calEvents[toKey].push(movedEv);
+      if(movedEv.label===ADM_LABEL)cascadeADM(toKey);
+      dragSrcId=null;dragSrcKey=null;renderCalendar();renderMilestones();
+    });
+    td.addEventListener('dblclick',e=>{if(!locked&&(e.target===td||e.target.classList.contains('cell-date')))openModal(td.dataset.key,null);});
+  });
+  tbl.querySelectorAll('.add-btn').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();if(!locked)openModal(btn.dataset.key,null);});});
+}
+
+function setLock(val){
+  locked=val;const tbl=$('calTable'),ov=$('lockOverlay'),btn=$('lockBtn');
+  if(locked){tbl.classList.add('locked');ov.classList.add('visible');btn.classList.add('btn-dark');btn.textContent='Locked';}
+  else{tbl.classList.remove('locked');ov.classList.remove('visible');btn.classList.remove('btn-dark');btn.textContent='Lock calendar';}
+}
+$('lockOverlay').addEventListener('click',()=>setLock(false));
+$('lockBtn').addEventListener('click',()=>setLock(!locked));
+$('resetBtn').addEventListener('click',()=>{milestoneNotes={};calculate();setLock(true);});
+
+function openModal(key,editId){
+  modalDateKey=key;modalEditId=editId||null;
+  const isEdit=!!editId;
+  $('modalTitle').textContent=isEdit?`Edit event — ${fmt(keyToDate(key))}`:`Add event — ${fmt(keyToDate(key))}`;
+  $('modalDelete').style.display=isEdit?'inline-block':'none';
+  if(isEdit){const ev=(calEvents[key]||[]).find(e=>e.id===editId);if(ev){$('evLabel').value=ev.label;$('evColor').value=ev.cls||'b-blue';}}
+  else{$('evLabel').value='';$('evColor').value='b-blue';}
+  $('modalOverlay').classList.add('open');setTimeout(()=>$('evLabel').focus(),50);
+}
+function closeModal(){$('modalOverlay').classList.remove('open');modalEditId=null;}
+$('modalCancel').addEventListener('click',closeModal);
+$('modalOverlay').addEventListener('click',e=>{if(e.target===$('modalOverlay'))closeModal();});
+$('modalDelete').addEventListener('click',()=>{
+  if(modalEditId&&modalDateKey){const list=calEvents[modalDateKey];if(list){const idx=list.findIndex(e=>e.id===modalEditId);if(idx!==-1)list.splice(idx,1);if(!list.length)delete calEvents[modalDateKey];}}
+  closeModal();renderCalendar();renderMilestones();
+});
+$('modalSave').addEventListener('click',()=>{
+  const label=$('evLabel').value.trim();if(!label)return;
+  const cls=$('evColor').value;
+  if(modalEditId){const list=calEvents[modalDateKey]||[];const ev=list.find(e=>e.id===modalEditId);if(ev){ev.label=label;ev.cls=cls;}}
+  else{if(!calEvents[modalDateKey])calEvents[modalDateKey]=[];calEvents[modalDateKey].push({id:uid(),label,cls,locked:false,role:label,custom:true});}
+  closeModal();renderCalendar();renderMilestones();
+});
+$('evLabel').addEventListener('keydown',e=>{if(e.key==='Enter')$('modalSave').click();});
+
+function renderMilestones(){
+  const allKeys=Object.keys(calEvents).filter(k=>calEvents[k]&&calEvents[k].length>0).sort();
+  const rows=[];
+  for(const k of allKeys){const d=keyToDate(k);for(const ev of calEvents[k])rows.push({rk:ev.id,date:d,label:ev.label,cls:ev.cls});}
+  const el=$('milestones');
+  el.innerHTML=rows.map(r=>`<div class="ms-row"><div class="ms-top"><div class="ms-date">${fmt(r.date)}</div><span class="badge ${r.cls}">${r.label}</span></div><textarea class="ms-notes" data-rk="${r.rk}" rows="1" placeholder="Add notes here...">${milestoneNotes[r.rk]||''}</textarea></div>`).join('');
+  el.querySelectorAll('.ms-notes').forEach(ta=>{autoSize(ta);ta.addEventListener('input',()=>{milestoneNotes[ta.dataset.rk]=ta.value;autoSize(ta);});});
+}
+function autoSize(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
+
+async function exportPDF(elementId,filename,title){
+  const spinner=$('spinner');
+  spinner.style.display='inline-block';
+  try{
+    const{jsPDF}=window.jspdf;
+    const el=document.getElementById(elementId);
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const imgData=canvas.toDataURL('image/png');
+    const imgW=canvas.width;const imgH=canvas.height;
+    const isLandscape=imgW>imgH;
+    const pdf=new jsPDF({orientation:isLandscape?'landscape':'portrait',unit:'mm',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth();const ph=pdf.internal.pageSize.getHeight();
+    const margin=10;const usableW=pw-margin*2;const usableH=ph-margin*2-18;
+    const ratio=imgW/imgH;
+    let w=usableW;let h=w/ratio;
+    if(h>usableH){h=usableH;w=h*ratio;}
+    pdf.setFontSize(13);pdf.setFont('helvetica','bold');
+    pdf.text(title,margin,margin+5);
+    pdf.setFontSize(8);pdf.setFont('helvetica','italic');pdf.setTextColor(140,140,140);
+    pdf.text('A free tool developed by Liz Muscat',margin,margin+9);
+    pdf.setTextColor(0,0,0);
+    const pv=$('panelDate').value;
+    if(pv){pdf.setFontSize(8);pdf.setFont('helvetica','normal');pdf.setTextColor(120,120,120);pdf.text(`Panel date: ${fmt(parseDate(pv))}`,margin,margin+13);pdf.setTextColor(0,0,0);}
+    pdf.addImage(imgData,'PNG',margin+(usableW-w)/2,margin+18,w,h);
+    pdf.save(filename);
+  }catch(err){
+    console.error('PDF error:',err);
+    alert('PDF generation failed. Please try again.');
+  }
+  spinner.style.display='none';
+}
+
+$('dlCalBtn').addEventListener('click',()=>{
+  const wasLocked=locked;
+  if(!wasLocked)setLock(true);
+  setTimeout(()=>{
+    exportPDF('calContainer','transition-calendar.pdf','Adoption transition plan — calendar').then(()=>{if(!wasLocked)setLock(false);});
+  },100);
+});
+$('dlMsBtn').addEventListener('click',()=>exportPDF('milestones','transition-milestones.pdf','Adoption transition plan — milestone summary'));
+
+$('admOverride').addEventListener('change',()=>{updateStatuses();calculate();});
+$('clearAdm').addEventListener('click',()=>{$('admOverride').value='';updateStatuses();calculate();});
+$('introOverride').addEventListener('change',()=>{updateStatuses();calculate();});
+$('clearIntro').addEventListener('click',()=>{$('introOverride').value='';updateStatuses();calculate();});
+['panelDate','ppmDays','playdates','introDays'].forEach(id=>{$(id).addEventListener('change',calculate);$(id).addEventListener('input',calculate);});
+</script>
+</body>
+</html>
