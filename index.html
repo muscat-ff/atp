@@ -123,7 +123,7 @@ table.cal.locked .add-btn{display:none!important}
     <div class="row"><label class="lbl">Matching panel date</label><input type="date" id="panelDate"/></div>
     <div class="row"><label class="lbl">Placement planning meeting (working days after panel)</label><input type="number" id="ppmDays" value="3" min="1" max="10" style="width:64px"/></div>
     <div class="row"><label class="lbl">Playdates before formal introductions</label><input type="number" id="playdates" value="6" min="4" max="8" style="width:64px"/></div>
-    <div class="row"><label class="lbl">Formal introductions length (consecutive days)</label><input type="number" id="introDays" value="12" min="10" max="14" style="width:64px"/></div>
+    <div class="row"><label class="lbl">Formal introductions length (consecutive days, incl. weekends)</label><input type="number" id="introDays" value="10" min="10" max="14" style="width:64px"/></div>
     <div style="border-top:1px solid #e8e6e0;margin-top:10px;padding-top:12px">
       <div class="section-label">Override dates — fill in when confirmed</div>
       <div class="row" style="margin-bottom:4px">
@@ -247,13 +247,13 @@ function genPostADM(admDate,admCls,pc,ic){
   for(let i=0;i<pc;i++){while(isWeekend(pd))pd=addDays(pd,-1);pdList.unshift(new Date(pd.getFullYear(),pd.getMonth(),pd.getDate()));pd=addDays(pd,-2);}
   pdList.forEach((_,i)=>ev(pdList[i],`Playdate ${i+1}`,'b-gray'));
   ev(admDate,ADM_LABEL,admCls);
-  const introDates=[];let restDay=null;
-  let cur=new Date(introStart.getFullYear(),introStart.getMonth(),introStart.getDate());let dc=0;
-  while(dc<ic){if(!isWeekend(cur)){introDates.push(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()));dc++;if(dc===1){let ns=addDays(cur,1);while(ns.getDay()!==6)ns=addDays(ns,1);restDay=new Date(ns.getFullYear(),ns.getMonth(),ns.getDate());}}cur=addDays(cur,1);}
-  introDates.forEach((d,i)=>ev(d,`Intro day ${i+1}`,'b-amber'));
-  if(restDay)ev(restDay,'Rest day','b-gray');
+  const introDates=[];
+  let cur=new Date(introStart.getFullYear(),introStart.getMonth(),introStart.getDate());
+  for(let i=0;i<ic;i++){introDates.push(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()));cur=addDays(cur,1);}
+  let restIdx=introDates.findIndex(d=>d.getDay()===6);
+  let dayNum=0;
+  introDates.forEach((d,i)=>{if(i===restIdx){ev(d,'Rest day','b-gray');}else{dayNum++;ev(d,`Intro day ${dayNum}`,'b-amber');}});
   let ie=new Date(introDates[introDates.length-1].getFullYear(),introDates[introDates.length-1].getMonth(),introDates[introDates.length-1].getDate());
-  while(isWeekend(ie)||isFriday(ie))ie=addDays(ie,1);
   ev(ie,'Placement day','b-coral');ev(addDays(ie,2),'Foster carer visit 1','b-green');ev(addDays(ie,6),'Foster carer visit 2','b-green');ev(addDays(ie,13),'Foster carer visit 3','b-green');
   return evs;
 }
@@ -262,7 +262,7 @@ function placeEv(date,label,cls,lk,custom){const k=dateKey(date);if(!calEvents[k
 
 function calculate(){
   const pv=$('panelDate').value;if(!pv){$('output').style.display='none';$('placeholder').style.display='block';return;}
-  const panel=parseDate(pv);const ppmDays=parseInt($('ppmDays').value)||3;const pc=parseInt($('playdates').value)||6;const ic=parseInt($('introDays').value)||12;
+  const panel=parseDate(pv);const ppmDays=parseInt($('ppmDays').value)||3;const pc=parseInt($('playdates').value)||6;const ic=parseInt($('introDays').value)||10;
   const{date:adm}=getADMDate(panel);
   calEvents={};
   placeEv(panel,'Matching panel','b-purple',true,false);
@@ -274,7 +274,7 @@ function calculate(){
 }
 
 function cascadeADM(newAdmKey){
-  const pc=parseInt($('playdates').value)||6;const ic=parseInt($('introDays').value)||12;
+  const pc=parseInt($('playdates').value)||6;const ic=parseInt($('introDays').value)||10;
   const newAdm=keyToDate(newAdmKey);
   for(const k of Object.keys(calEvents)){calEvents[k]=(calEvents[k]||[]).filter(ev=>!POST_ADM.has(ev.label));if(!calEvents[k].length)delete calEvents[k];}
   const postADM=genPostADM(newAdm,'b-red',pc,ic);
